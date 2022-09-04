@@ -1,0 +1,124 @@
+---
+title: "Ordenando t min"
+author: "Daphne Arenas"
+date: '2022-09-01'
+output: html_document
+---
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+library(tidyverse)
+```
+# Abriendo el archivo
+
+```{r}
+Puerto_maldonado <- read_csv("Tumbes_csv/000132.csv")
+```
+Viendo la informaciòn que contiene
+```{r}
+head(Puerto_maldonado,5)
+```
+Viendo como se llaman las columnas
+```{r}
+names(Puerto_maldonado)
+```
+
+Nombre de las columnas con el tipo de dato
+```{r}
+spec(Puerto_maldonado)
+#cada columna y el tipo de dato
+```
+
+# Formato de fecha
+```{r}
+library(lubridate)
+```
+
+Utilizar el link: https://estadisticamente.com/extraer-fecha-r-ano-mes-dia/ 
+```{r}
+#Puerto_maldonado$Fecha #Para acceder a esta columna
+fechaof <-  as.Date(Puerto_maldonado$Fecha,'%Y/%m/%d')
+tail(fechaof)
+```
+
+```{r}
+dia <- as.numeric(format(fechaof,'%d'))
+mes <- as.numeric(format(fechaof,'%m'))
+year <- as.numeric(format(fechaof,'%Y'))
+```
+
+Añadiendo estos nuevos valores en nuestra tabla
+Link usado: https://rpubs.com/Cesar_AHN/data_frame_crear_seleccion_de_elementos_variables_columnas_filas_agregar#:~:text=Agregar%20Columnas.,usaremos%20el%20comando%20cbind()%20. 
+```{r}
+Puerto_maldonado<-cbind(Puerto_maldonado,dia,mes,year) 
+head(Puerto_maldonado)
+```
+
+# Dataframe bonito
+Link recomendado: https://www.datanovia.com/en/lessons/select-data-frame-columns-in-r/
+```{r}
+Puerto_maldonado_oficial <- Puerto_maldonado %>% select(Fecha, dia, mes, year,
+                                                        `Tmax (C)`,`Tmin (C)`)
+tail(Puerto_maldonado_oficial)
+```
+```{r}
+Puerto_maldonado_oficial <- filter(Puerto_maldonado_oficial, year>=2000 & year<=2014)
+tail(Puerto_maldonado_oficial)
+
+```
+# Ordenando de manera anual
+
+```{r}
+meses <- c("Ene" , "Feb", "Mar" ,"Abr" ,"May" ,"Jun", "Jul" ,"Ago" ,"Set" ,"Oct" ,"Nov", "Dic")
+
+Tmin_puerto_maldonado <- Puerto_maldonado_oficial %>%
+  mutate(`Tmin (C)`) %>% 
+  group_by(year,mes) %>%
+  summarise(Tmin_m = mean(`Tmin (C)`))%>% 
+  mutate(Tmin_m = round(Tmin_m,1))%>% #para tener 1 decimal en Tmin
+  pivot_wider(names_from = mes, values_from = Tmin_m)%>% 
+  rename_at(c(2:13),~meses) %>% 
+  mutate(Prom=rowMeans(across("Ene":"Dic"))) %>%
+  mutate(Prom=round(Prom,1)) %>% 
+  rename("Año"=year)
+```
+
+#Mostrando la tabla final
+```{r}
+tail(Tmin_puerto_maldonado)
+```
+# Chequeando los NaN
+En realidad, debi haber hecho esto antes :"v
+```{r}
+#PuertoMaldonadoOficial: 5479 datos
+nulos_Tmin <- is.na(Puerto_maldonado_oficial$`Tmin (C)`)
+df <- data.frame(Puerto_maldonado_oficial$Fecha,Puerto_maldonado_oficial$dia,
+                 Puerto_maldonado_oficial$mes,Puerto_maldonado_oficial$year,nulos_Tmin)
+tail(df) #solo hasta 2014 porque es lo que me interesa
+```
+```{r}
+colnames(df) <- c("Fecha","Dia","Mes","Año","nulos_Tmin")
+tail(df)
+```
+Viendo los valores TRUE
+```{r}
+filter(df,nulos_Tmin=="TRUE")
+```
+```{r}
+sum(df$nulos_Tmin)
+```
+```{r}
+  df %>% 
+  group_by(Año,Mes) %>%
+  summarise(nulos= sum(df$nulos_Tmin))%>% 
+  pivot_wider(names_from = Mes, values_from = nulos) %>% 
+  rename_at(c(2:13),~meses) 
+  
+```
+
+
+
