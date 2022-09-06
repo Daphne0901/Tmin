@@ -75,15 +75,16 @@ tail(Puerto_maldonado_oficial)
 ```{r}
 meses <- c("Ene" , "Feb", "Mar" ,"Abr" ,"May" ,"Jun", "Jul" ,"Ago" ,"Set" ,"Oct" ,"Nov", "Dic")
 
-Tmin_puerto_maldonado <- Puerto_maldonado_oficial %>%
-  mutate(`Tmin (C)`) %>% 
+Tmin_puerto_maldonado <- Puerto_maldonado_oficial %>%  
+  # mutate(`Tmin (C)`) %>%
   group_by(year,mes) %>%
-  summarise(Tmin_m = mean(`Tmin (C)`))%>% 
-  mutate(Tmin_m = round(Tmin_m,1))%>% #para tener 1 decimal en Tmin
-  pivot_wider(names_from = mes, values_from = Tmin_m)%>% 
-  rename_at(c(2:13),~meses) %>% 
+  #mutate(Tmin_m = mean(`Tmin (C)`)) %>%
+  summarise(Tmin_m = mean(`Tmin (C)`)) %>%
+  mutate(Tmin_m = round(Tmin_m,1)) %>% #para tener 1 decimal en Tmin
+  pivot_wider(names_from = mes, values_from = Tmin_m) %>%
+  rename_at(c(2:13),~meses) %>% # error al seleccionar los numeros de las columnas
   mutate(Prom=rowMeans(across("Ene":"Dic"))) %>%
-  mutate(Prom=round(Prom,1)) %>% 
+  mutate(Prom=round(Prom,1)) %>%
   rename("Año"=year)
 ```
 
@@ -91,34 +92,34 @@ Tmin_puerto_maldonado <- Puerto_maldonado_oficial %>%
 ```{r}
 tail(Tmin_puerto_maldonado)
 ```
+
 # Chequeando los NaN
 En realidad, debi haber hecho esto antes :"v
 ```{r}
-#PuertoMaldonadoOficial: 5479 datos
-nulos_Tmin <- is.na(Puerto_maldonado_oficial$`Tmin (C)`)
-df <- data.frame(Puerto_maldonado_oficial$Fecha,Puerto_maldonado_oficial$dia,
-                 Puerto_maldonado_oficial$mes,Puerto_maldonado_oficial$year,nulos_Tmin)
-tail(df) #solo hasta 2014 porque es lo que me interesa
-```
-```{r}
-colnames(df) <- c("Fecha","Dia","Mes","Año","nulos_Tmin")
-tail(df)
-```
-Viendo los valores TRUE
-```{r}
-filter(df,nulos_Tmin=="TRUE")
-```
-```{r}
-sum(df$nulos_Tmin)
-```
-```{r}
-  df %>% 
-  group_by(Año,Mes) %>%
-  summarise(nulos= sum(df$nulos_Tmin))%>% 
-  pivot_wider(names_from = Mes, values_from = nulos) %>% 
-  rename_at(c(2:13),~meses) 
-  
+meses <- c("Ene" , "Feb", "Mar" ,"Abr" ,"May" ,"Jun", "Jul" ,"Ago" ,"Set" ,"Oct" ,"Nov", "Dic")
+
+Tmin_NA_puerto_maldonado <- Puerto_maldonado_oficial %>%  
+  group_by(year,mes) %>%
+  summarise(Tmin_contando = sum(is.na(`Tmin (C)`))) %>% 
+  pivot_wider(names_from = mes, values_from = Tmin_contando) %>%
+  rename_at(c(2:13),~meses) %>% # error al seleccionar los numeros de las columnas
+  rename("Año"=year)
 ```
 
+```{r}
+# make_matrix <- function(df,rownames = NULL){
+#   my_matrix <-  as.matrix(df)
+#   if(!is.null(rownames))
+#     rownames(my_matrix) = rownames
+#   my_matrix
+# }
+# 
+# 
+# (my_matrix <- make_matrix(select(Tmin_NA_puerto_maldonado),-row_name),
+#                          pull(Tmin_NA_puerto_maldonado,row_name))
+
+test <- data.matrix(Tmin_NA_puerto_maldonado[,-c(1)])
+test
+```
 
 
