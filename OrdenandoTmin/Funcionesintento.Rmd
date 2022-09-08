@@ -1,0 +1,185 @@
+---
+title: "Funciones"
+author: "Daphne Arenas"
+date: '2022-09-06'
+output: html_document
+---
+Leer: https://fhernanb.github.io/Manual-de-R/creafun.html
+
+#cargando librerias a utilizar
+```{r}
+library(tidyverse)
+```
+
+#Funciòn para leer csvs
+```{r}
+leer_csv <- function(ruta) {
+  csv <- read_csv(ruta)
+  return(csv)
+}
+```
+Poniendolo a prueba
+```{r}
+archivo <- leer_csv(ruta="D://MetUNALM//Tumbes formato csv//000132.csv")
+tail(archivo,5)
+```
+```{r}
+dim(archivo)
+```
+#Viendo el tipo de datos
+```{r}
+spec(archivo)
+```
+```{r}
+#filter(archivo,year==2010) #archivos NAN en abril de Tmin
+```
+
+#formato fecha
+```{r}
+library(lubridate)
+```
+
+Probando
+```{r}
+corrigiendo_fechas<- function(nombre_de_la_variable, columna_fechas){
+  
+  fecha_corregida <- as.Date(columna_fechas,'%Y/%m/%d')
+  dia <- as.numeric(format(fechaof,'%d'))
+  mes <- as.numeric(format(fechaof,'%m'))
+  year <- as.numeric(format(fechaof,'%Y'))
+  #adjuntando
+  nombre_de_la_variable <- cbind(nombre_de_la_variable,dia,mes,year)
+  return(nombre_de_la_variable)
+}
+```
+
+```{r}
+archivo <- corrigiendo_fechas(archivo,archivo$Fecha)
+tail(archivo)
+```
+```{r}
+dim(archivo)
+```
+```{r}
+names(archivo)
+```
+#Seleccionando variables y filtros
+```{r}
+seleccion_filtro <- function(nombre_de_la_variable,dia,mes,year,var1,year_init,year_end) {
+  filtro <- nombre_de_la_variable %>% select(dia,mes,year,var1) %>% filter(year>=year_init & year<=year_end)
+  return(filtro)
+}
+```
+
+```{r}
+
+```
+
+```{r}
+archivo <- seleccion_filtro(archivo,dia,mes,year,"Tmin (C)",2000,2014)
+tail(archivo)
+```
+
+```{r}
+filter(archivo,mes==4 & year==2010)
+```
+
+```{r}
+dim(archivo) #va a cambiar por los filtros
+```
+#pivot: Datos nulos
+```{r}
+#sum(is.na(archivo$"Tmin (C)"))
+sum(is.na(archivo[,"Tmin (C)"]))
+```
+```{r}
+sum(is.na(archivo$`Tmin (C)`))
+```
+
+```{r}
+meses <- c("Ene" , "Feb", "Mar" ,"Abr" ,"May" ,"Jun", "Jul" ,"Ago" ,"Set" ,"Oct" ,"Nov", "Dic")
+```
+
+```{r}
+contando_nulos <- function(nombre_de_la_variable,dia,mes,year,var1,meses) {
+  datos_nulos <- nombre_de_la_variable %>% 
+    group_by(year,mes) %>% 
+    summarise(var1_contando=sum(is.na(nombre_de_la_variable[,var1]))) %>% 
+    pivot_wider(names_from=mes,values_from=var1_contando) %>% 
+    rename_at(c(2:13),~meses) %>%
+    rename("Año"=year)
+  return(datos_nulos)
+}
+```
+
+```{r}
+contando_nulos(archivo,dia,mes,year,var1="Tmin (C)",meses)
+```
+```{r}
+contando_nulos <- function(nombre_de_la_variable,dia,mes,year,var1,meses) {
+  datos_nulos <- nombre_de_la_variable %>% 
+    group_by(year,mes) %>% 
+    summarise(var1_contando=sum(is.na(var1))) %>% 
+    pivot_wider(names_from=mes,values_from=var1_contando) %>% 
+    rename_at(c(2:13),~meses) %>%
+    rename("Año"=year)
+  return(datos_nulos)
+}
+```
+
+```{r}
+contando_nulos(archivo,dia,mes,year,`Tmin (C)`,meses)
+```
+
+
+```{r}
+contando_nulos <- function(nombre_de_la_variable,dia,mes,year,var1,meses) {
+  datos_nulos <- nombre_de_la_variable %>% 
+    group_by(year,mes) %>% 
+    summarise(var1_contando=sum(is.na(nombre_de_la_variable[,var1]))) %>% 
+    pivot_wider(names_from=mes,values_from=var1_contando) %>% 
+    rename_at(c(2:13),~meses) %>%
+    rename("Año"=year)
+  return(datos_nulos)
+}
+```
+
+
+```{r}
+archivo %>%  
+  group_by(year,mes) %>%
+  summarise(Tmin_contando = sum(is.na(`Tmin (C)`)) ) %>% 
+  pivot_wider(names_from = mes, values_from = Tmin_contando) %>%
+  rename_at(c(2:13),~meses) %>% # error al seleccionar los numeros de las columnas
+  rename("Año"=year)
+```
+```{r}
+archivo %>%  
+  group_by(year,mes) %>%
+  summarise(Tmin_contando = sum(is.na("Tmin (C)")) ) %>% 
+  pivot_wider(names_from = mes, values_from = Tmin_contando) %>%
+  rename_at(c(2:13),~meses) %>% # error al seleccionar los numeros de las columnas
+  rename("Año"=year)
+```
+
+#toda la funcion: tabla bonita
+```{r}
+tabla_bonita <- function(nombre_de_la_variable,dia,mes,year,var1,meses) {
+  ordenado <- nombre_de_la_variable %>% 
+    group_by(year,mes) %>% 
+    summarise(var1_m = mean(var1)) %>% 
+    mutate(var1_m = round(var1_m,1)) %>%
+    pivot_wider(names_from=mes,values_from=var1_m) %>% 
+    rename_at(c(2:13),~meses) %>%
+    mutate(Prom=rowMeans(across("Ene":"Dic"))) %>%
+    mutate(Prom=round(Prom,1)) %>%
+    rename("Año"=year)
+  return(ordenado)
+}
+```
+
+Atea rezando para que la funciòn salga
+```{r}
+tabla_bonita(archivo,dia,mes,year,archivo$`Tmin (C)`,meses)
+```
+
